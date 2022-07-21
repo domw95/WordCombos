@@ -12,8 +12,8 @@
 #define PRINT_FOUND false
 
 
-// Create words struct for managing word list and options
-struct Words words = {.length = 0, .count = 0, .list = NULL, .mode = 0, .sourcefile = NULL};
+// Create words struct for managing word lists and results
+struct Words words;
 
 // Combo struct for tracking bruteforce checking
 struct Combo combo;
@@ -22,6 +22,8 @@ struct Combo combo;
 bool validate_using_popcnt(struct Combo *combo);
 
 bool found_combo_callback(struct Combo *combo);
+
+bool combo_loop_callback(struct Combo *combo);
 
 int main(int argc, char **argv)
 {
@@ -42,7 +44,7 @@ int main(int argc, char **argv)
             words.sourcefile = optarg;
             break;
         case 'm':
-            words.mode = atoi(optarg);
+            // words.mode = atoi(optarg);
             break;
         default:
             printf("Option incorrect\n");
@@ -69,44 +71,28 @@ int main(int argc, char **argv)
     }
     printf("%d words in list\n", words.total_words);
     printf("%d of length %d\n", words.total_words_length, words.length);
-    printf("%d are unique\n", words.total_words_unique);
+    printf("%d have no repeating letters\n", words.total_words_all);
     if (REMOVE_ANAGRAMS){
-        printf("%d after removing anagrams\n", words.total_words_wo_anagrams);
+        printf("%d after removing anagrams\n", words.total_words_unique);
     }
-
-    // list_anagrams(&words);
 
     // initialise and check combo
-    init_combo(&combo, words.total, words.count);
-    combo.words = &words;
-    // list_combos(&combo);
+    init_combo(&combo, words.unique.length, words.count);
+    combo.data = &words;
+    printf("Checking combos\n");
+    find_combos(&combo, validate_using_popcnt,found_combo_callback, combo_loop_callback);
+    printf("Checked %.2f%%, Found %d\n", 100.0, words.results.total);
 
-    find_combos(&combo, validate_using_popcnt,found_combo_callback);
-
-    // generate results from combos and anagrams
-    words.results = malloc(combo.total*sizeof(char *));
-    words.nresults = combo.total;
-    for (int i=0; i<combo.total; i++){
-        words.results[i] = malloc(combo.width*sizeof(char *));
-        for (int j=0; j<combo.width; j++){
-            words.results[i][j] = words.list[combo.found[i][j]];
-        }
-    }
-
-    // for (int i=0; i<words.nresults; i++){
-    //     for (int j=0; j<words.count; j++){
-    //         printf("%s ", words.results[i][j]);
-    //     }
-    //     printf("\n");
-    // }
-    printf("\nSubstituing in anagrams\n");
+   
+    printf("Substituing in anagrams\n");
     // create more results from anagrams
     // need to do permutations for this
-    for (int i=0; i<combo.total; i++){
+    int nresults = words.results.total;
+    for (int i=0; i<nresults; i++){
         struct Permu permu;
         init_permu(&permu, combo.width, 0);
         for (int j=0; j<combo.width; j++){
-            permu.limits[j] = words.nanagrams[combo.found[i][j]] + 1;            
+            permu.limits[j] = words.results.list[i].words[j]->anagrams.length +1;
         }
         // remove all 0 permutation
         next_permu(&permu);
@@ -114,41 +100,44 @@ int main(int argc, char **argv)
 
         // printf("\n");
         while(next_permu(&permu)){
-            char **result = malloc(combo.width*sizeof(char *));
+            struct Wordlist list;
+            list.words = NULL;
+            list.length = 0;
             for(int j=0; j<combo.width; j++){                
                 if (permu.pos[j]){
                     // place anagram here
-                    result[j] = words.anagrams[combo.found[i][j]][permu.pos[j]-1];
+                    append_to_list(words.results.list[i].words[j]->anagrams.words[permu.pos[j]-1], &list);
                 } else {
                     // copy original word
-                    result[j] = words.list[combo.found[i][j]];
+                    append_to_list(words.results.list[i].words[j], &list);
                 }
-
             }
-            // increase size of results
-            words.nresults ++;
-            char ***ptr = realloc(words.results, words.nresults*sizeof(char *));
-            if (ptr == NULL){
-                printf("Failed to reallocate words.results");
-                return 7;
-            }
-            words.results = ptr;
-            words.results[words.nresults-1] = result;
+            append_to_results(list, &words.results);
         }
         free(permu.pos);
         free(permu.limits);
     }
-    printf("Total found = %d\n",words.nresults);
+
+    //  print results
+    for (int i=0; i<words.results.total; i++){
+        for (int j=0; j<words.results.list[i].length; j++){
+            printf("%s ",words.results.list[i].words[j]->str);
+        }
+        printf("\n");
+    }
+    printf("Total = %d\n",words.results.total);
+
 }
 
 bool validate_using_popcnt(struct Combo *combo){
     // how many bits should be said after words are bitwise orred together
-    int target_cnt = combo->words->length*2;
+    struct Words *words = ((struct Words *)combo->data);
+    int target_cnt = words->length*2;
     // check each of the previous items in combo against current
     for (int i=0; i<combo->ind; i++){
         // bitwise or then popcnt and compare to target count
-        if (popcnt64(combo->words->integer[combo->pos[i]] | 
-            combo->words->integer[combo->pos[combo->ind]]) != target_cnt){
+        if (popcnt64(words->unique.words[combo->pos[i]]->integer | 
+            words->unique.words[combo->pos[combo->ind]]->integer ) != target_cnt){
                 return false;
         }
     }    
@@ -156,11 +145,23 @@ bool validate_using_popcnt(struct Combo *combo){
 }
 
 bool found_combo_callback(struct Combo *combo){
-    // // print words
-    if(PRINT_FOUND){
-        for (int i=0; i<combo->width; i++){
-            printf("%s ", combo->words->list[combo->found[combo->total-1][i]]);
-        }
-        printf("\n");
-    }    
+    struct Words *words = ((struct Words *)combo->data);
+    // reached end, record result and continue
+    struct Wordlist list;
+    list.words = NULL;
+    list.length = 0;
+
+    // fetch words from wordlists
+    for (int i=0; i<words->count; i++){
+        append_to_list(words->unique.words[combo->pos[i]], &list);
+    }
+    // add result to results
+    append_to_results(list, &words->results);
+}
+
+bool combo_loop_callback(struct Combo *combo){
+    if (combo->ind == 0){
+        float progress = 100*(float)combo->pos[combo->ind]/combo->length;
+        printf("\rChecked %.2f%%, Found %d\r", progress, ((struct Words *)combo->data)->results.total);
+    }
 }

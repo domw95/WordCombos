@@ -12,112 +12,63 @@ bool parse_wordlist(struct Words *words, bool remove_anagrams){
     // reset words struct
     words->total_words = 0;
     words->total_words_length = 0;
+    words->total_words_all = 0;
     words->total_words_unique = 0;
-    words->total_words_wo_anagrams = 0;
-    words->total = 0;    
 
-    // allocate memory for lists
-    words->list = NULL;
-    words->anagrams = NULL;
-    words->nanagrams = NULL;
-    words->unqiue_list = NULL;
-    words->integer = NULL;
+    words->unique.words = NULL;
+    words->all.words = NULL;
+
+    words->unique.length = 0;
+    words->all.length = 0;
+
+    words->results.total = 0;
+    words->results.list = NULL;
 
     // length to store a word
     int string_length = words->length + 1;
 
     // go through each line, finding words of correct length
-    char word[MAXLINELENGTH];
-    while(fgets(word, MAXLINELENGTH, file)){
+    char wordstr[MAXLINELENGTH];
+    while(fgets(wordstr, MAXLINELENGTH, file)){
         words->total_words ++;
         // remove \r and \n from string
-        word[strcspn(word, "\n\r")] = '\0';
+        wordstr[strcspn(wordstr, "\n\r")] = '\0';
         // check length
-        if (strlen(word) == words->length){
+        if (strlen(wordstr) == words->length){
             words->total_words_length ++;
             // convert to integer
-            uint64_t wordint = word_to_int(word);
-            // printf("%s is 0x%08X\n",word,wordint);
+            uint64_t wordint = word_to_int(wordstr);
+            // check if all letters are unique
             if (popcnt64(wordint) == words->length){
-                words->total_words_unique ++;
-                // increase unique list size                         
-                char **list_ptr = realloc(words->unqiue_list, words->total_words_unique*sizeof(char *));
-                if (list_ptr == NULL){
-                    printf("Failed to reallocate memory for words.unique_list");
-                    return false;
-                }
-                words->unqiue_list = list_ptr;
-                // create char array for word
-                char *word_ptr = malloc(string_length * sizeof(char));
-                if (word_ptr == NULL){
-                    printf("Failed to allocate memory for word\n");
-                    return false;
-                }
-                // add to unique list
-                words->unqiue_list[words->total_words_unique-1] = word_ptr;
-                strcpy(words->unqiue_list[words->total_words_unique-1], word);
+                words->total_words_all++;
+                // create a word struct and assign string to it
+                struct Word *word = malloc(sizeof(struct Word));
+                word->str = malloc(string_length*sizeof(char));
+                word->integer = wordint;
+                word->pos = words->total_words_all-1;
+                word->anagrams.words = NULL;
+                word->anagrams.length = 0;
+                strcpy(word->str,wordstr);
 
-                // check if an anagram has already appeared
+                // add word to list all
+                append_to_list(word, &words->all);
+                
+                // check if word is anagram of word already in unique list
                 bool anagram = false;
                 if (remove_anagrams){
-                    for (int i=0; i<words->total; i++){
-                        if (popcnt64(wordint | words->integer[i]) == words->length){
-                            // All the letters are the same
+                    for (int i=0; i<words->unique.length; i++){
+                        if (popcnt64(wordint | words->unique.words[i]->integer) == words->length){
+                            // all the letters are the same
                             anagram = true;
-                            // add this word to list of matching words anagrams
-                            // increment number of anagrams for this word
-                            words->nanagrams[i] ++;
-                            // reallocate memory for longer list                            
-                            char **ana_elem_ptr = realloc(words->anagrams[i], words->nanagrams[i]*sizeof(char *));
-                            if (ana_elem_ptr == NULL){
-                                printf("Failed to reallocate memory for anagram elem\n");
-                                return false;
-                            }
-                            words->anagrams[i] = ana_elem_ptr;
-                            words->anagrams[i][words->nanagrams[i]-1] = word_ptr;
-                            break;
+                            // add this word to anagrams of other word
+                            append_to_list(word, &words->unique.words[i]->anagrams);
                         }
                     }
                 }
                 if (!anagram){
-                    words->total_words_wo_anagrams ++;
-                    words->total ++;
-                    // reallocate memory for integer, list and anagrams                    
-                    int *temp_ptr= realloc(words->integer, words->total*sizeof(int));
-                    if(temp_ptr == NULL){
-                        printf("Failed to reallocate memory for words.integer");
-                        return false;
-                    }
-                    words->integer = temp_ptr;
-                    list_ptr = realloc(words->list, words->total*sizeof(char *));
-                    if (list_ptr == NULL){
-                        printf("Failed to reallocate memory for words.list");
-                        return false;
-                    }
-                    words->list = list_ptr;                    
-                    char ***ana_ptr = realloc(words->anagrams, words->total*sizeof(char *));
-                    if (list_ptr == NULL){
-                        printf("Failed to reallocate memory for words.anagrams");
-                        return false;
-                    }
-                    words->anagrams = ana_ptr;
-                    
-                    // increase nanagram list size
-                    temp_ptr = realloc(words->nanagrams, words->total*sizeof(int));
-                    if (temp_ptr == NULL){
-                        printf("Failed to reallocate memory for words.nanagrams");
-                        return false;
-                    }
-                    words->nanagrams = temp_ptr;
-                    
-                    // set number of anagrams to 0
-                    words->nanagrams[words->total-1] = 0;
-                    // set anagram ptr to null
-                    words->anagrams[words->total-1] = NULL;
-                    // add word to lists
-                    words->integer[words->total-1] = wordint;
-                    words->list[words->total-1] = word_ptr;
-
+                    words->total_words_unique ++;
+                    // add word to unique list
+                    append_to_list(word, &words->unique);
                 }
             }
 
@@ -136,12 +87,37 @@ uint64_t word_to_int(const char *word){
     return intword;
 }
 
-void list_anagrams(struct Words *words){
-    for (int i=0; i<words->total; i++){
-        if (words->nanagrams[i]){
-            printf("%s : ", words->list[i]);
-            for (int j=0; j<words->nanagrams[i]; j++){
-                printf("%s ", words->anagrams[i][j]);
+bool append_to_list(struct Word *word, struct Wordlist *list){
+    // increment length
+    list->length ++;
+    struct Word **ptr = realloc(list->words, list->length*sizeof(struct Word *));
+    if (ptr == NULL){
+        printf("Error appending to list\n");
+        return false;
+    }
+    list->words = ptr;
+    list->words[list->length-1] = word;
+    return true;
+
+}
+
+bool append_to_results(struct Wordlist list, struct Results *results){
+    results->total ++;
+    struct Wordlist *ptr = realloc(results->list, results->total*sizeof(struct Wordlist));
+    if (ptr == NULL){
+        printf("Error appending to results\n");
+        return false;
+    }
+    results->list = ptr;
+    results->list[results->total-1] = list;
+}
+
+void list_anagrams(struct Wordlist *list){
+    for (int i=0; i<list->length; i++){
+        if (list->words[i]->anagrams.length){
+            printf("%s : ", list->words[i]->str);
+            for (int j=0; j<list->words[i]->anagrams.length; j++){
+                printf("%s ", list->words[i]->anagrams.words[j]->str);
             }
             printf("\n");
         }

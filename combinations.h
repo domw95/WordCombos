@@ -11,9 +11,7 @@ struct Combo{
     int width;
     int *pos;
     int ind;
-    struct Words *words;
-    int **found;
-    int total;
+    void *data;
 };
 
 // typedef for validation function
@@ -32,6 +30,6 @@ bool step_combo(struct Combo *combo);
 bool list_combos(struct Combo *combo);
 
 // Find all combinations 
-bool find_combos(struct Combo *combo, combocallback validate, combocallback found);
+bool find_combos(struct Combo *combo, combocallback validate, combocallback found, combocallback loop);
 
 #endif
