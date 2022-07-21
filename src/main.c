@@ -13,21 +13,21 @@
 
 
 // Create words struct for managing word lists and results
-struct Words words;
+struct Words words = {.count=0, .length=0, .sourcefile=NULL};
 
 // Combo struct for tracking bruteforce checking
 struct Combo combo;
 
 // func for validating using integer popcnt method
 bool validate_using_popcnt(struct Combo *combo);
-
+// callbacks for combinations process
 bool found_combo_callback(struct Combo *combo);
 
 bool combo_loop_callback(struct Combo *combo);
 
 int main(int argc, char **argv)
 {
-    
+    // parse command line options
     int option_index = 0;
 
     while ((option_index = getopt(argc, argv, "l:c:s:m:")) != -1)
@@ -69,6 +69,8 @@ int main(int argc, char **argv)
         printf("Failed to parse wordlist\n");
         return 5;
     }
+
+    // Print wordlist stats
     printf("%d words in list\n", words.total_words);
     printf("%d of length %d\n", words.total_words_length, words.length);
     printf("%d have no repeating letters\n", words.total_words_all);
@@ -80,15 +82,15 @@ int main(int argc, char **argv)
     init_combo(&combo, words.unique.length, words.count);
     combo.data = &words;
     
+    // Check all combintations
     printf("Checking combos\n");
     find_combos(&combo, validate_using_popcnt,found_combo_callback, combo_loop_callback);
     printf("Checked %.2f%%, Found %d\n", 100.0, words.results.total);
 
-   
-    printf("Substituing in anagrams\n");
     // create more results from anagrams
-    // need to do permutations for this
+    printf("Substituing in anagrams\n");
     int nresults = words.results.total;
+
     for (int i=0; i<nresults; i++){
         struct Permu permu;
         init_permu(&permu, combo.width, 0);
@@ -97,9 +99,8 @@ int main(int argc, char **argv)
         }
         // remove all 0 permutation
         next_permu(&permu);
+        
         // go through rest
-
-        // printf("\n");
         while(next_permu(&permu)){
             struct Wordlist list;
             list.words = NULL;
@@ -119,13 +120,6 @@ int main(int argc, char **argv)
         free(permu.limits);
     }
 
-    // //  print results
-    // for (int i=0; i<words.results.total; i++){
-    //     for (int j=0; j<words.results.list[i].length; j++){
-    //         printf("%s ",words.results.list[i].words[j]->str);
-    //     }
-    //     printf("\n");
-    // }
     printf("Total = %d\n",words.results.total);
 
     // save results to file
@@ -140,11 +134,13 @@ int main(int argc, char **argv)
         }
         fputc('\n', outfile);
     }
+    printf("Results saved to %s\n", filename);
 
 }
 
+// function for validating current combintation of words
 bool validate_using_popcnt(struct Combo *combo){
-    // how many bits should be said after words are bitwise orred together
+    // get ptr to words stuct
     struct Words *words = ((struct Words *)combo->data);
 
     // check each of the previous items in combo against current
@@ -158,6 +154,7 @@ bool validate_using_popcnt(struct Combo *combo){
     return true;
 }
 
+// function called when a valid combination has been found
 bool found_combo_callback(struct Combo *combo){
     struct Words *words = ((struct Words *)combo->data);
     // reached end, record result and continue
@@ -173,6 +170,7 @@ bool found_combo_callback(struct Combo *combo){
     append_to_results(list, &words->results);
 }
 
+// Function called on every combination loop
 bool combo_loop_callback(struct Combo *combo){
     if (combo->ind == 0){
         float progress = 100*(float)combo->pos[combo->ind]/combo->length;
