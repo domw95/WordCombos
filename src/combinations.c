@@ -3,6 +3,15 @@
 #include <stdio.h>
 #include <string.h>
 
+uint64_t factorial(uint64_t n, uint64_t stop){
+    if (n == 1 || n == stop){
+        return 1;
+    } else {
+        return n*factorial(n-1, stop);
+    }
+    
+}
+
 bool init_combo(struct Combo *combo, int length, int width){
     combo->length = length;
     combo->width = width;
@@ -12,6 +21,8 @@ bool init_combo(struct Combo *combo, int length, int width){
     for (int i=0; i<width; i++){
         combo->pos[i] = -1;
     }
+    // combo->total = factorial(combo->length)/(factorial(combo->width) * factorial(combo->length-combo->width));
+    combo->total = factorial(combo->length, combo->length-combo->width)/factorial(combo->width, 0);
 }
 
 bool next_combo(struct Combo *combo){
