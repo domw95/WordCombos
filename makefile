@@ -3,9 +3,9 @@ INC=inc
 LIB=lib
 OBJ=obj
 BIN=bin
-TARGET = $(BIN)/wordcombo
+TARGET = wordcombo
 CC = gcc
-CFLAGS = -O3 -v
+CFLAGS = -O3
 ARGS = 101
 RM = rm -rf
 INCLUDE = -I $(INC) -I $(LIB)
@@ -28,3 +28,5 @@ $(TARGET): $(OBJECTS)
 $(OBJ)/%.o : $(SRC)/%.c
 	$(CC) $(INCLUDE) $(CFLAGS) $< -c -o $@
 
+clean:
+	rm -f $(OBJECTS)
