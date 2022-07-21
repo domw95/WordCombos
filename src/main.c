@@ -83,7 +83,7 @@ int main(int argc, char **argv)
     combo.data = &words;
     
     // Check all combintations
-    printf("Checking combos\n");
+    printf("Checking %li (%.2e) combos\n", combo.total, (double)combo.total);
     find_combos(&combo, validate_using_popcnt,found_combo_callback, combo_loop_callback);
     printf("Checked %.2f%%, Found %d\n", 100.0, words.results.total);
 

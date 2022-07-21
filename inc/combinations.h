@@ -12,6 +12,7 @@ struct Combo{
     int *pos;
     int ind;
     void *data;
+    uint64_t total;
 };
 
 // typedef for validation function
