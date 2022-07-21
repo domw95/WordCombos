@@ -24,6 +24,8 @@ bool parse_wordlist(struct Words *words, bool remove_anagrams){
     words->results.total = 0;
     words->results.list = NULL;
 
+    words->target_cnt = words->length*2;
+
     // length to store a word
     int string_length = words->length + 1;
 
@@ -73,6 +75,10 @@ bool parse_wordlist(struct Words *words, bool remove_anagrams){
             }
 
         }
+    }
+    words->integers = malloc(words->unique.length*sizeof(uint64_t));
+    for (int i=0; i<words->unique.length; i++){
+        words->integers[i] = words->unique.words[i]->integer;
     }
     return true;
 }

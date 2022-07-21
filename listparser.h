@@ -31,6 +31,8 @@ struct Words{
     struct Wordlist all;    // all words including anagrams
     int length;
     int count;
+    uint64_t *integers;  // list of integer representation of unique to speed up processing
+    int target_cnt;
 
     char *sourcefile;   // file to generate list from
     // stats

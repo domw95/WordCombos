@@ -79,6 +79,7 @@ int main(int argc, char **argv)
     // initialise and check combo
     init_combo(&combo, words.unique.length, words.count);
     combo.data = &words;
+    
     printf("Checking combos\n");
     find_combos(&combo, validate_using_popcnt,found_combo_callback, combo_loop_callback);
     printf("Checked %.2f%%, Found %d\n", 100.0, words.results.total);
@@ -118,26 +119,39 @@ int main(int argc, char **argv)
         free(permu.limits);
     }
 
-    //  print results
+    // //  print results
+    // for (int i=0; i<words.results.total; i++){
+    //     for (int j=0; j<words.results.list[i].length; j++){
+    //         printf("%s ",words.results.list[i].words[j]->str);
+    //     }
+    //     printf("\n");
+    // }
+    printf("Total = %d\n",words.results.total);
+
+    // save results to file
+    char filename[60];
+    sprintf(filename, "results/Word_length_%d_combo_%d", words.length, words.count);
+    FILE *outfile = fopen(filename, "w");
+
     for (int i=0; i<words.results.total; i++){
         for (int j=0; j<words.results.list[i].length; j++){
-            printf("%s ",words.results.list[i].words[j]->str);
+            fputs(words.results.list[i].words[j]->str, outfile);
+            fputc(' ', outfile);
         }
-        printf("\n");
+        fputc('\n', outfile);
     }
-    printf("Total = %d\n",words.results.total);
 
 }
 
 bool validate_using_popcnt(struct Combo *combo){
     // how many bits should be said after words are bitwise orred together
     struct Words *words = ((struct Words *)combo->data);
-    int target_cnt = words->length*2;
+
     // check each of the previous items in combo against current
     for (int i=0; i<combo->ind; i++){
         // bitwise or then popcnt and compare to target count
-        if (popcnt64(words->unique.words[combo->pos[i]]->integer | 
-            words->unique.words[combo->pos[combo->ind]]->integer ) != target_cnt){
+        if (popcnt64(words->integers[combo->pos[i]]| 
+            words->integers[combo->pos[combo->ind]] ) != words->target_cnt){
                 return false;
         }
     }    
