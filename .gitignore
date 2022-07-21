@@ -1,6 +1,8 @@
 /results/*
-### VisualStudioCode ###
-*vscode/*      # Maybe .vscode/**/* instead - see comments
+/obj/*
+.vscode/*
+/wordlists/*
+
 # !.vscode/settings.json
 # !.vscode/tasks.json
 # !.vscode/launch.json
