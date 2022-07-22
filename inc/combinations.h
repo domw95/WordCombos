@@ -31,6 +31,12 @@ bool step_combo(struct Combo *combo);
 bool list_combos(struct Combo *combo);
 
 // Find all combinations 
-bool find_combos(struct Combo *combo, combocallback validate, combocallback found, combocallback loop);
+bool find_combos();
+
+bool validate_callback(struct Combo *combo);
+
+void found_callback(struct Combo *combo);
+
+void loop_callback(struct Combo *combo);
 
 #endif

@@ -18,13 +18,6 @@ struct Words words = {.count=0, .length=0, .sourcefile=NULL};
 // Combo struct for tracking bruteforce checking
 struct Combo combo;
 
-// func for validating using integer popcnt method
-bool validate_using_popcnt();
-// callbacks for combinations process
-bool found_combo_callback();
-
-bool combo_loop_callback();
-
 int main(int argc, char **argv)
 {
     // parse command line options
@@ -84,7 +77,7 @@ int main(int argc, char **argv)
     
     // Check all combintations
     printf("Checking %li (%.2e) combos\n", combo.total, (double)combo.total);
-    find_combos(&combo, validate_using_popcnt,found_combo_callback, combo_loop_callback);
+    find_combos(&combo);
     printf("Checked %.2f%%, Found %d\n", 100.0, words.results.total);
 
     // create more results from anagrams
@@ -138,16 +131,15 @@ int main(int argc, char **argv)
 
 }
 
-// function for validating current combintation of words
-bool validate_using_popcnt(){
+bool validate_callback(struct Combo *combo){
     // get ptr to words stuct
     // struct Words *words = ((struct Words *)combo->data);
 
     // check each of the previous items in combo against current
-    for (int i=0; i<combo.ind; i++){
+    for (int i=0; i<combo->ind; i++){
         // bitwise or then popcnt and compare to target count
-        if (words.integers[combo.pos[i]] & 
-            words.integers[combo.pos[combo.ind]]){
+        if (words.integers[combo->pos[i]] & 
+            words.integers[combo->pos[combo->ind]]){
                 return false;
         }
     }    
@@ -155,7 +147,7 @@ bool validate_using_popcnt(){
 }
 
 // function called when a valid combination has been found
-bool found_combo_callback(){
+void found_callback(struct Combo *combo){
     // reached end, record result and continue
     struct Wordlist list;
     list.words = NULL;
@@ -163,16 +155,16 @@ bool found_combo_callback(){
 
     // fetch words from wordlists
     for (int i=0; i<words.count; i++){
-        append_to_list(words.unique.words[combo.pos[i]], &list);
+        append_to_list(words.unique.words[combo->pos[i]], &list);
     }
     // add result to results
     append_to_results(list, &words.results);
 }
 
 // Function called on every combination loop
-bool combo_loop_callback(){
-    if (combo.ind == 0){
-        float progress = 100*(float)combo.pos[combo.ind]/combo.length;
-        printf("\rChecked %.2f%%, Found %d\r", progress, ((struct Words *)combo.data)->results.total);
+void loop_callback(struct Combo *combo){
+    if (combo->ind == 0){
+        float progress = 100*(float)combo->pos[combo->ind]/combo->length;
+        printf("\rChecked %.2f%%, Found %d\r", progress, ((struct Words *)combo->data)->results.total);
     }
 }

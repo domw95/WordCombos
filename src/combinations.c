@@ -70,19 +70,31 @@ bool list_combos(struct Combo *combo){
     }
 }
 
-bool find_combos(struct Combo *combo, combocallback validate, combocallback found, combocallback loop){
+bool find_combos(struct Combo *combo){
     // keep getting next combination until it finishes
     while(next_combo(combo)){
         // call loop callback
-        (*loop)();
+        loop_callback(combo);
         // Keep calling validation function and stepping 
-        while ((*validate)()){
+        while (validate_callback(combo)){
             // step to next index
             if(step_combo(combo)){    
                 // reached a valid combo, call found func then go to next combo            
-                (*found)();
+                found_callback(combo);
                 break;
             }
         }
     }
+}
+
+bool __attribute__((weak)) validate_callback(struct Combo *combo) {
+    
+}
+
+void __attribute__((weak)) found_callback(struct Combo *combo) {
+    
+}
+
+void __attribute__((weak)) loop_callback(struct Combo *combo) {
+    
 }
