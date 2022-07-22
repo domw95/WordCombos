@@ -3,6 +3,15 @@
 #include <stdio.h>
 #include <string.h>
 
+uint64_t factorial(uint64_t n, uint64_t stop){
+    if (n == 1 || n == stop){
+        return 1;
+    } else {
+        return n*factorial(n-1, stop);
+    }
+    
+}
+
 bool init_combo(struct Combo *combo, int length, int width){
     combo->length = length;
     combo->width = width;
@@ -12,8 +21,8 @@ bool init_combo(struct Combo *combo, int length, int width){
     for (int i=0; i<width; i++){
         combo->pos[i] = -1;
     }
-    combo->found = malloc(1*sizeof(int *));
-    combo->total = 0;
+    // combo->total = factorial(combo->length)/(factorial(combo->width) * factorial(combo->length-combo->width));
+    combo->total = factorial(combo->length, combo->length-combo->width)/factorial(combo->width, 0);
 }
 
 bool next_combo(struct Combo *combo){
@@ -61,40 +70,19 @@ bool list_combos(struct Combo *combo){
     }
 }
 
-bool find_combos(struct Combo *combo, combocallback validate, combocallback found){
-    // keep getting next combination
+bool find_combos(struct Combo *combo, combocallback validate, combocallback found, combocallback loop){
+    // keep getting next combination until it finishes
     while(next_combo(combo)){
-        // check progress
-        if (combo->ind == 0){
-            float progress = 100*(float)combo->pos[combo->ind]/combo->length;
-            printf("\rChecked %.2f%%, Found %d\r", progress, combo->total);
-        }
+        // call loop callback
+        (*loop)(combo);
         // Keep calling validation function and stepping 
         while ((*validate)(combo)){
             // step to next index
-            if(step_combo(combo)){
-                // reached end, record combo and go to next
-                combo->total ++;
-                // extend found array
-                int** ptr = realloc(combo->found,combo->total*sizeof(int *));
-                if (ptr == NULL){
-                    printf("Failed to reallocate combo.found\n");
-                    return false;
-                }
-                combo->found = ptr;
-                // allocate memory for combo
-                combo->found[combo->total-1] = malloc(combo->width*sizeof(int));
-                if (combo->found[combo->total-1] == NULL){
-                    printf("Failed to allocate found array\n");
-                    return false;
-                }
-                // copy current position to found
-                memcpy(combo->found[combo->total-1], combo->pos, combo->width*sizeof(int));                
-                // call found callback
+            if(step_combo(combo)){    
+                // reached a valid combo, call found func then go to next combo            
                 (*found)(combo);
                 break;
             }
         }
     }
-    printf("\rChecked %.2f%%, Found %d\r", 100.0, combo->total);
 }
