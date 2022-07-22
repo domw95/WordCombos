@@ -1,0 +1,15 @@
+time ./wordcombo -l 5 -c 5 -s wordlists/words_alpha.txt 
+370105 words in list
+15920 of length 5
+10175 have no repeating letters
+5977 after removing anagrams
+Checking 63461194334606970 (6.35e+16) combos
+Checked 100.00%, Found 538
+Substituing in anagrams
+Total = 831
+Results saved to results/Word_length_5_combo_5
+
+real	8m3.683s
+user	8m3.662s
+sys	0m0.004s
+
