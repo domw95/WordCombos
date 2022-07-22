@@ -85,7 +85,7 @@ bool parse_wordlist(struct Words *words, bool remove_anagrams){
 
 uint64_t word_to_int(const char *word){
     int i = 0;
-    uint32_t intword = 0;
+    uint64_t intword = 0;
     while(word[i]){
         intword |= 1 << ((uint8_t)word[i]-97);
         i++;
