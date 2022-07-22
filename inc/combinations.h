@@ -16,7 +16,7 @@ struct Combo{
 };
 
 // typedef for validation function
-typedef bool (*combocallback)(struct Combo *combo);
+typedef bool (*combocallback)();
 
 // Initialise a combination with given width and length
 bool init_combo(struct Combo *combo, int length, int width);

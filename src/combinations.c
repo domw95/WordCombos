@@ -74,13 +74,13 @@ bool find_combos(struct Combo *combo, combocallback validate, combocallback foun
     // keep getting next combination until it finishes
     while(next_combo(combo)){
         // call loop callback
-        (*loop)(combo);
+        (*loop)();
         // Keep calling validation function and stepping 
-        while ((*validate)(combo)){
+        while ((*validate)()){
             // step to next index
             if(step_combo(combo)){    
                 // reached a valid combo, call found func then go to next combo            
-                (*found)(combo);
+                (*found)();
                 break;
             }
         }
